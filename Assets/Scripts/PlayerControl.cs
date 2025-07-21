@@ -8,15 +8,13 @@ public class PlayerController : MonoBehaviour
   //[SerializeField] private GridManager gridManager;
   [SerializeField] private Rigidbody2D _rb;
   [SerializeField] private float _speed = 5;
-  [SerializeField] private float _turnSpeed = 360;
   //private Vector2 movementDirection;
   //private Tile lastHighlightedTile;
 
-  private Vector3 _input;
+  private Vector2 _input;
   private void Update()
   {
     GatherInput();
-    Look();
   }
 
   private void FixedUpdate()
@@ -26,20 +24,15 @@ public class PlayerController : MonoBehaviour
 
   private void GatherInput()
   {
-    _input = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
-  }
-
-  private void Look()
-  {
-    if (_input == Vector3.zero) return;
-
-    var rot = Quaternion.LookRotation(_input.ToIso(), Vector3.up);
-    transform.rotation = Quaternion.RotateTowards(transform.rotation, rot, _turnSpeed * Time.deltaTime);
+    _input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
   }
 
   private void Move()
   {
-    _rb.MovePosition(transform.position + transform.forward * _input.normalized.magnitude * _speed * Time.deltaTime);
+    if (_input == Vector2.zero) return;
+
+    // Simple 2D movement
+    _rb.MovePosition((Vector2)transform.position + _input.normalized * _speed * Time.deltaTime);
   }
   void Start()
   {
