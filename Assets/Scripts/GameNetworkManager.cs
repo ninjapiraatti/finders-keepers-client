@@ -396,18 +396,27 @@ public class GameNetworkManager : MonoBehaviour
 
     async void OnApplicationQuit()
     {
-        if (websocket != null)
-        {
-            await websocket.Close();
-        }
+        await SafeCloseWebSocket();
     }
 
     async void OnDestroy()
     {
-        if (websocket != null)
-        {
-            await websocket.Close();
-        }
+        await SafeCloseWebSocket();
         myPlayerId = null;
+    }
+
+    private async System.Threading.Tasks.Task SafeCloseWebSocket()
+    {
+        if (websocket != null && websocket.State == WebSocketState.Open)
+        {
+            try
+            {
+                await websocket.Close();
+            }
+            catch (Exception e)
+            {
+                if (enableDebugLogs) Debug.Log($"WebSocket close exception (this is usually harmless): {e.Message}");
+            }
+        }
     }
 }

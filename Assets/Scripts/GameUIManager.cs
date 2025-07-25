@@ -4,19 +4,10 @@ using TMPro;
 
 public class GameUIManager : MonoBehaviour
 {
-    [Header("Connection UI")]
-    public GameObject connectionPanel;
-    public TMP_InputField playerNameInput;
-    public TMP_InputField serverUrlInput;
-    public Button connectButton;
-    public Button disconnectButton;
-    public TextMeshProUGUI statusText;
-
     [Header("Game UI")]
     public GameObject gamePanel;
-    public TextMeshProUGUI playerCountText;
     public TextMeshProUGUI playerListText;
-    public TextMeshProUGUI instructionsText;
+    public Button quitButton;
 
     [Header("Debug UI")]
     public GameObject debugPanel;
@@ -46,29 +37,11 @@ public class GameUIManager : MonoBehaviour
     private void SetupUI()
     {
         // Initialize UI state
-        ShowConnectionPanel();
+        ShowGamePanel();
 
-        // Set default values
-        if (playerNameInput != null)
-            playerNameInput.text = "Unity Player " + Random.Range(1000, 9999);
-
-        if (serverUrlInput != null)
-            serverUrlInput.text = "ws://37.27.225.36:8087";
-
-        // Setup button events
-        if (connectButton != null)
-            connectButton.onClick.AddListener(OnConnectClicked);
-
-        if (disconnectButton != null)
-            disconnectButton.onClick.AddListener(OnDisconnectClicked);
-
-        // Set instructions
-        if (instructionsText != null)
-        {
-            instructionsText.text = "Use WASD keys to move around\nPress F1 to toggle debug panel";
-        }
-
-        UpdateStatus("Disconnected", Color.red);
+        // Setup quit button
+        if (quitButton != null)
+            quitButton.onClick.AddListener(OnQuitClicked);
     }
 
     void Update()
@@ -83,53 +56,34 @@ public class GameUIManager : MonoBehaviour
         UpdateGameUI();
     }
 
-    public async void OnConnectClicked()
+    public void OnQuitClicked()
     {
-        if (networkManager == null) return;
+        AddDebugMessage("Quitting application...");
 
-        // Update network manager settings
-        if (playerNameInput != null)
-            networkManager.playerName = playerNameInput.text;
+        // If connected, disconnect first
+        if (networkManager != null && networkManager.IsConnected())
+        {
+            // You might want to call a disconnect method here if available
+            // networkManager.Disconnect();
+        }
 
-        if (serverUrlInput != null)
-            networkManager.serverUrl = serverUrlInput.text;
+        Application.Quit();
 
-        // Start connection
-        await networkManager.ConnectToServer();
-
-        UpdateStatus("Connecting...", Color.yellow);
-        connectButton.interactable = false;
-    }
-
-    public void OnDisconnectClicked()
-    {
-        if (networkManager == null) return;
-
-        // Disconnect from server
-        Application.Quit(); // For now, just quit - you might want to handle this differently
+        // For editor testing
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
     }
 
     private void OnConnected(string serverUrl)
     {
         ShowGamePanel();
-        UpdateStatus($"Connected to {serverUrl}", Color.green);
         AddDebugMessage($"Successfully connected to {serverUrl}");
-
-        if (disconnectButton != null)
-            disconnectButton.interactable = true;
     }
 
     private void OnDisconnected()
     {
-        ShowConnectionPanel();
-        UpdateStatus("Disconnected", Color.red);
         AddDebugMessage("Disconnected from server");
-
-        if (connectButton != null)
-            connectButton.interactable = true;
-
-        if (disconnectButton != null)
-            disconnectButton.interactable = false;
     }
 
     private void OnPlayerJoined(Player player)
@@ -142,37 +96,17 @@ public class GameUIManager : MonoBehaviour
         AddDebugMessage($"Player left: {playerId}");
     }
 
-    private void ShowConnectionPanel()
-    {
-        if (connectionPanel != null) connectionPanel.SetActive(true);
-        if (gamePanel != null) gamePanel.SetActive(false);
-    }
-
     private void ShowGamePanel()
     {
-        if (connectionPanel != null) connectionPanel.SetActive(false);
         if (gamePanel != null) gamePanel.SetActive(true);
-    }
-
-    private void UpdateStatus(string message, Color color)
-    {
-        if (statusText != null)
-        {
-            statusText.text = message;
-            statusText.color = color;
-        }
     }
 
     private void UpdateGameUI()
     {
         if (networkManager == null) return;
 
-        // Update player count (you'd need to track this in NetworkManager)
-        // For now, just show connection status
-        if (playerCountText != null)
-        {
-            playerCountText.text = networkManager.IsConnected() ? "Connected" : "Disconnected";
-        }
+        // Update player list here if needed
+        // For now, this method can be used for other UI updates
     }
 
     private void ToggleDebugPanel()
