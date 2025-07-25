@@ -8,7 +8,7 @@ public class GameNetworkManager : MonoBehaviour
 {
     [Header("Connection Settings")]
     public string serverUrl = "ws://37.27.225.36:8087";
-    public string playerName = "Ninjapiraatti";
+    public string playerName = "AAA";
 
     [Header("Player Settings")]
     public GameObject playerPrefab;
@@ -122,11 +122,15 @@ public class GameNetworkManager : MonoBehaviour
 
     private async void JoinGame()
     {
-        Debug.Log($"JoinGame() called - Player name: {playerName}");
+        // Generate a unique player ID for this client
+        myPlayerId = System.Guid.NewGuid().ToString();
+
+        Debug.Log($"JoinGame() called - Player name: {playerName}, Player ID: {myPlayerId}");
         var joinMessage = new ClientMessage
         {
             type = "Join",
-            player_name = playerName
+            player_name = playerName,
+            player_id = myPlayerId
         };
 
         Debug.Log("Sending join message to server...");
@@ -303,7 +307,8 @@ public class GameNetworkManager : MonoBehaviour
         }
 
         // Check if this player is already spawned to avoid duplicates
-        bool isMyPlayer = (player.id == myPlayerId) || (string.IsNullOrEmpty(myPlayerId) && player.name == playerName);
+        Debug.LogWarning("Player ID and myPlayerId " + player.id + ", " + myPlayerId);
+        bool isMyPlayer = player.id == myPlayerId;
 
         if (isMyPlayer && myPlayerObject != null)
         {
@@ -475,6 +480,7 @@ public class ClientMessage
 {
     public string type;
     public string player_name;
+    public string player_id;
     public float x;
     public float y;
     public float z;
