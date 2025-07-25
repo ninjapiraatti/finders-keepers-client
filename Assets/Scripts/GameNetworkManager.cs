@@ -4,6 +4,72 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
+// Network message classes
+[Serializable]
+public class ClientMessage
+{
+    public string type;
+    public string player_name;
+    public string player_id;
+    public float x;
+    public float y;
+    public float z;
+}
+
+[Serializable]
+public class ServerMessage
+{
+    public string type;
+}
+
+[Serializable]
+public class GameStateMessage : ServerMessage
+{
+    public Player[] players;
+}
+
+[Serializable]
+public class PlayerJoinedMessage : ServerMessage
+{
+    public string player_id;
+    public string player_name;
+    public float x;
+    public float y;
+    public float z;
+}
+
+[Serializable]
+public class PlayerMovedMessage : ServerMessage
+{
+    public string player_id;
+    public float x;
+    public float y;
+    public float z;
+}
+
+[Serializable]
+public class PlayerLeftMessage : ServerMessage
+{
+    public string player_id;
+}
+
+[Serializable]
+public class ErrorMessage : ServerMessage
+{
+    public string message;
+}
+
+[Serializable]
+public class Player
+{
+    public string id;
+    public string name;
+    public float x;
+    public float y;
+    public float z;
+}
+
+// Main game network manager
 public class GameNetworkManager : MonoBehaviour
 {
     [Header("Connection Settings")]
@@ -31,52 +97,27 @@ public class GameNetworkManager : MonoBehaviour
 
     async void Start()
     {
-        Debug.Log($"GameNetworkManager Start() - Attempting to connect to: {serverUrl}");
         await ConnectToServer();
     }
-
-    private float lastConnectionCheck = 0f;
-    private float connectionCheckInterval = 5f; // Check every 5 seconds
 
     void Update()
     {
 #if !UNITY_WEBGL || UNITY_EDITOR
         websocket?.DispatchMessageQueue();
 #endif
-
-        // Periodically log connection state for debugging
-        if (enableDebugLogs && Time.time - lastConnectionCheck > connectionCheckInterval)
-        {
-            lastConnectionCheck = Time.time;
-            if (websocket != null)
-            {
-                Debug.Log($"WebSocket State: {websocket.State}");
-            }
-            else
-            {
-                Debug.Log("WebSocket is null");
-            }
-        }
     }
 
     public async System.Threading.Tasks.Task ConnectToServer()
     {
-        Debug.Log($"ConnectToServer() called - Server URL: {serverUrl}");
-        Debug.Log($"Platform: {Application.platform}");
-        Debug.Log($"Is Editor: {Application.isEditor}");
-
         if (websocket != null)
         {
-            Debug.Log("Closing existing websocket connection");
             await websocket.Close();
         }
 
-        Debug.Log($"Creating new WebSocket connection to: {serverUrl}");
         websocket = new WebSocket(serverUrl);
 
         websocket.OnOpen += () =>
         {
-            Debug.Log($"WebSocket OnOpen event triggered! Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
             if (enableDebugLogs) Debug.Log("Connected to Finders Keepers Server!");
             OnConnected?.Invoke(serverUrl);
             JoinGame();
@@ -84,16 +125,14 @@ public class GameNetworkManager : MonoBehaviour
 
         websocket.OnError += (e) =>
         {
-            Debug.LogError($"WebSocket Error: {e} Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
+            Debug.LogError($"WebSocket Error: {e}");
         };
 
         websocket.OnClose += (e) =>
         {
-            Debug.Log($"WebSocket OnClose event triggered: {e} Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
             if (enableDebugLogs) Debug.Log($"Connection closed: {e}");
             OnDisconnected?.Invoke();
             CleanupPlayers();
-            // Clear player ID when connection is lost
             myPlayerId = null;
         };
 
@@ -106,28 +145,18 @@ public class GameNetworkManager : MonoBehaviour
 
         try
         {
-            Debug.Log("Attempting to connect to WebSocket...");
             await websocket.Connect();
-            Debug.Log("WebSocket.Connect() completed without exception");
-
-            // Wait a bit and check the state
-            await System.Threading.Tasks.Task.Delay(1000);
-            Debug.Log($"Connection state after 1 second: {websocket.State}");
         }
         catch (Exception e)
         {
             Debug.LogError($"Failed to connect to server: {e.Message}");
-            Debug.LogError($"Exception Type: {e.GetType().Name}");
-            Debug.LogError($"Stack Trace: {e.StackTrace}");
         }
     }
 
     private async void JoinGame()
     {
-        // Generate a unique player ID for this client
         myPlayerId = System.Guid.NewGuid().ToString();
 
-        Debug.Log($"JoinGame() called - Player name: {playerName}, Player ID: {myPlayerId}");
         var joinMessage = new ClientMessage
         {
             type = "Join",
@@ -135,7 +164,6 @@ public class GameNetworkManager : MonoBehaviour
             player_id = myPlayerId
         };
 
-        Debug.Log("Sending join message to server. Player ID: " + myPlayerId);
         await SendMessage(joinMessage);
     }
 
@@ -151,7 +179,6 @@ public class GameNetworkManager : MonoBehaviour
             z = position.z
         };
 
-        if (enableDebugLogs) Debug.Log($"[LOCAL] Sending position update: ({position.x:F2}, {position.y:F2}, {position.z:F2})");
         await SendMessage(moveMessage);
     }
 
@@ -217,10 +244,8 @@ public class GameNetworkManager : MonoBehaviour
 
     private void HandleGameState(GameStateMessage gameState)
     {
-        // Clear existing players
         CleanupPlayers();
 
-        // Spawn all players from game state
         foreach (var player in gameState.players)
         {
             SpawnPlayer(player);
@@ -238,7 +263,6 @@ public class GameNetworkManager : MonoBehaviour
             z = message.z
         };
 
-        Debug.Log($"[SPAWN] Message player ID: {message.player_id}");
         SpawnPlayer(player);
         OnPlayerJoined?.Invoke(player);
     }
@@ -247,40 +271,22 @@ public class GameNetworkManager : MonoBehaviour
     {
         Vector3 newPosition = new Vector3(message.x, message.y, message.z);
 
-        if (enableDebugLogs)
-        {
-            Debug.Log($"[NETWORK] Player {message.player_id} moved to ({newPosition.x:F2}, {newPosition.y:F2}, {newPosition.z:F2})");
-            Debug.Log($"[NETWORK] My player ID: {myPlayerId}, Message player ID: {message.player_id}");
-        }
-
         // Only update remote players, never update our own player from network messages
         if (message.player_id != myPlayerId && otherPlayers.ContainsKey(message.player_id))
         {
             var playerObject = otherPlayers[message.player_id];
             if (playerObject != null)
             {
-                // Use NetworkPlayer component for smooth movement
                 var networkPlayer = playerObject.GetComponent<NetworkPlayer>();
                 if (networkPlayer != null)
                 {
-                    if (enableDebugLogs) Debug.Log($"[NETWORK] Updating remote player via NetworkPlayer component");
                     networkPlayer.UpdateNetworkPosition(newPosition);
                 }
                 else
                 {
-                    // Fallback to direct position update
-                    if (enableDebugLogs) Debug.Log($"[NETWORK] Updating remote player directly (no NetworkPlayer component)");
                     playerObject.transform.position = newPosition;
                 }
             }
-        }
-        else if (message.player_id == myPlayerId)
-        {
-            if (enableDebugLogs) Debug.Log($"[NETWORK] Ignoring position update for local player");
-        }
-        else
-        {
-            if (enableDebugLogs) Debug.Log($"[NETWORK] Player {message.player_id} not found in otherPlayers dictionary");
         }
 
         OnPlayerMoved?.Invoke(message.player_id, newPosition);
@@ -309,9 +315,6 @@ public class GameNetworkManager : MonoBehaviour
             return;
         }
 
-        // Check if this player is already spawned to avoid duplicates
-        Debug.LogWarning("Player ID: " + player.id);
-        Debug.LogWarning("myPlayerId:" + myPlayerId);
         bool isMyPlayer = player.id == myPlayerId;
 
         if (isMyPlayer && myPlayerObject != null)
@@ -329,48 +332,42 @@ public class GameNetworkManager : MonoBehaviour
         Vector3 spawnPosition = new Vector3(player.x, player.y, player.z);
         GameObject playerObject = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
 
-        // Set up player object
         var playerController = playerObject.GetComponent<NetworkPlayer>();
         if (playerController != null)
         {
             playerController.Initialize(player.id, player.name, isMyPlayer);
         }
 
-        // Check if this is our player
         if (isMyPlayer)
         {
             myPlayerId = player.id;
             myPlayerObject = playerObject;
 
-            // Enable PlayerController for local player (if it exists)
             var localController = playerObject.GetComponent<PlayerController>();
             if (localController != null)
             {
                 localController.enabled = true;
-                localController.SetNetworkManager(this); // Set the network manager reference
+                localController.SetNetworkManager(this);
             }
 
-            if (enableDebugLogs) Debug.Log($"[SPAWN] Spawned local player: {player.name} (ID: {player.id}) at {spawnPosition}");
+            if (enableDebugLogs) Debug.Log($"Spawned local player: {player.name}");
         }
         else
         {
-            // This is another player
             otherPlayers[player.id] = playerObject;
 
-            // Disable PlayerController for remote players (if it exists)
             var localController = playerObject.GetComponent<PlayerController>();
             if (localController != null)
             {
                 localController.enabled = false;
             }
 
-            if (enableDebugLogs) Debug.Log($"[SPAWN] Spawned remote player: {player.name} (ID: {player.id}) at {spawnPosition}");
+            if (enableDebugLogs) Debug.Log($"Spawned remote player: {player.name}");
         }
     }
 
     private void CleanupPlayers()
     {
-        // Destroy all other players
         foreach (var kvp in otherPlayers)
         {
             if (kvp.Value != null)
@@ -380,15 +377,11 @@ public class GameNetworkManager : MonoBehaviour
         }
         otherPlayers.Clear();
 
-        // Destroy our player object
         if (myPlayerObject != null)
         {
             Destroy(myPlayerObject);
             myPlayerObject = null;
         }
-
-        // Don't clear myPlayerId here - we still need it to identify ourselves in GameState messages
-        // myPlayerId = null;
     }
 
     public bool IsConnected()
@@ -399,67 +392,6 @@ public class GameNetworkManager : MonoBehaviour
     public string GetMyPlayerId()
     {
         return myPlayerId;
-    }
-
-    // Add this method to test connectivity manually
-    [ContextMenu("Test Connection")]
-    public async void TestConnection()
-    {
-        Debug.Log("=== MANUAL CONNECTION TEST ===");
-        await ConnectToServer();
-    }
-
-    // Add this method to test basic network connectivity
-    [ContextMenu("Test Network Connectivity")]
-    public void TestNetworkConnectivity()
-    {
-        Debug.Log("=== TESTING NETWORK CONNECTIVITY ===");
-        try
-        {
-            // Test basic connectivity using UnityWebRequest
-            StartCoroutine(TestNetworkCoroutine());
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Network connectivity test failed: {e.Message}");
-            Debug.LogError($"Exception type: {e.GetType().Name}");
-        }
-    }
-
-    private System.Collections.IEnumerator TestNetworkCoroutine()
-    {
-        string testUrl = "http://37.27.225.36:8087";
-        Debug.Log($"Testing connectivity to: {testUrl}");
-
-        using (var request = UnityEngine.Networking.UnityWebRequest.Get(testUrl))
-        {
-            request.timeout = 5;
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
-            {
-                Debug.Log($"HTTP connectivity test successful: {request.responseCode}");
-            }
-            else
-            {
-                Debug.LogError($"HTTP connectivity test failed: {request.error}");
-                Debug.LogError($"Response Code: {request.responseCode}");
-            }
-        }
-    }
-
-    // Add this method to check current connection state
-    [ContextMenu("Check Connection State")]
-    public void CheckConnectionState()
-    {
-        if (websocket == null)
-        {
-            Debug.Log("WebSocket is null");
-        }
-        else
-        {
-            Debug.Log($"WebSocket State: {websocket.State}");
-        }
     }
 
     async void OnApplicationQuit()
@@ -476,72 +408,6 @@ public class GameNetworkManager : MonoBehaviour
         {
             await websocket.Close();
         }
-        // Clear player ID when destroying the component
         myPlayerId = null;
     }
-}
-
-// Message classes matching your Rust server
-[Serializable]
-public class ClientMessage
-{
-    public string type;
-    public string player_name;
-    public string player_id;
-    public float x;
-    public float y;
-    public float z;
-}
-
-[Serializable]
-public class ServerMessage
-{
-    public string type;
-}
-
-[Serializable]
-public class GameStateMessage : ServerMessage
-{
-    public Player[] players;
-}
-
-[Serializable]
-public class PlayerJoinedMessage : ServerMessage
-{
-    public string player_id;
-    public string player_name;
-    public float x;
-    public float y;
-    public float z;
-}
-
-[Serializable]
-public class PlayerMovedMessage : ServerMessage
-{
-    public string player_id;
-    public float x;
-    public float y;
-    public float z;
-}
-
-[Serializable]
-public class PlayerLeftMessage : ServerMessage
-{
-    public string player_id;
-}
-
-[Serializable]
-public class ErrorMessage : ServerMessage
-{
-    public string message;
-}
-
-[Serializable]
-public class Player
-{
-    public string id;
-    public string name;
-    public float x;
-    public float y;
-    public float z;
 }
