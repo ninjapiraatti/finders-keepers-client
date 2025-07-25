@@ -93,6 +93,8 @@ public class GameNetworkManager : MonoBehaviour
             if (enableDebugLogs) Debug.Log($"Connection closed: {e}");
             OnDisconnected?.Invoke();
             CleanupPlayers();
+            // Clear player ID when connection is lost
+            myPlayerId = null;
         };
 
         websocket.OnMessage += (bytes) =>
@@ -133,7 +135,7 @@ public class GameNetworkManager : MonoBehaviour
             player_id = myPlayerId
         };
 
-        Debug.Log("Sending join message to server...");
+        Debug.Log("Sending join message to server. Player ID: " + myPlayerId);
         await SendMessage(joinMessage);
     }
 
@@ -236,6 +238,7 @@ public class GameNetworkManager : MonoBehaviour
             z = message.z
         };
 
+        Debug.Log($"[SPAWN] Message player ID: {message.player_id}");
         SpawnPlayer(player);
         OnPlayerJoined?.Invoke(player);
     }
@@ -307,7 +310,8 @@ public class GameNetworkManager : MonoBehaviour
         }
 
         // Check if this player is already spawned to avoid duplicates
-        Debug.LogWarning("Player ID and myPlayerId " + player.id + ", " + myPlayerId);
+        Debug.LogWarning("Player ID: " + player.id);
+        Debug.LogWarning("myPlayerId:" + myPlayerId);
         bool isMyPlayer = player.id == myPlayerId;
 
         if (isMyPlayer && myPlayerObject != null)
@@ -383,7 +387,8 @@ public class GameNetworkManager : MonoBehaviour
             myPlayerObject = null;
         }
 
-        myPlayerId = null;
+        // Don't clear myPlayerId here - we still need it to identify ourselves in GameState messages
+        // myPlayerId = null;
     }
 
     public bool IsConnected()
@@ -471,6 +476,8 @@ public class GameNetworkManager : MonoBehaviour
         {
             await websocket.Close();
         }
+        // Clear player ID when destroying the component
+        myPlayerId = null;
     }
 }
 

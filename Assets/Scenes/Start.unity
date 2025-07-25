@@ -660,7 +660,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   serverUrl: ws://37.27.225.36:8087
-  playerName: Ninjapiraatti
+  playerName: Test1
   playerPrefab: {fileID: 2027191282950342530, guid: dd65408882c569c47814b1600de963eb, type: 3}
   spawnPoint: {fileID: 0}
   enableDebugLogs: 1
