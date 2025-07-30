@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-  [SerializeField] private float movementSpeed = 2f;
+  [SerializeField] private float movementSpeed = 5f;
   //[SerializeField] private GridManager gridManager;
   [SerializeField] private Rigidbody2D _rb;
   [SerializeField] private float _speed = 5;
@@ -13,8 +13,6 @@ public class PlayerController : MonoBehaviour
   public float smoothTime = 0.1f;
 
   private GameNetworkManager networkManager;
-  private Vector2 targetPosition;
-  private Vector2 velocity;
   private Vector2 lastSentPosition;
   private float positionSendThreshold = 0.1f; // Send position updates when moved this much
   private float lastSendTime;
@@ -27,7 +25,6 @@ public class PlayerController : MonoBehaviour
   void Start()
   {
     _rb = GetComponent<Rigidbody2D>();
-    targetPosition = transform.position;
     lastSentPosition = transform.position;
 
     // If networkManager is not set, try to find it
@@ -49,7 +46,6 @@ public class PlayerController : MonoBehaviour
     if (!isLocalPlayer) return;
 
     GatherInput();
-    UpdatePosition();
 
     // Only send network updates if connected
     if (networkManager != null && networkManager.IsConnected())
@@ -78,17 +74,8 @@ public class PlayerController : MonoBehaviour
 
     // Simple 2D movement using Rigidbody2D
     Vector2 inputDirection = _input.normalized;
-    Vector2 newPosition = (Vector2)transform.position + inputDirection * _speed * Time.deltaTime;
+    Vector2 newPosition = (Vector2)transform.position + inputDirection * _speed * Time.fixedDeltaTime;
     _rb.MovePosition(newPosition);
-
-    // Update target position to match the actual position
-    targetPosition = newPosition;
-  }
-
-  private void UpdatePosition()
-  {
-    // Smooth movement to target position
-    transform.position = Vector2.SmoothDamp(transform.position, targetPosition, ref velocity, smoothTime);
   }
 
   private void CheckSendPosition()
@@ -118,7 +105,6 @@ public class PlayerController : MonoBehaviour
   public void SetPosition(Vector3 position)
   {
     transform.position = position;
-    targetPosition = position;
     lastSentPosition = position;
   }
 }
