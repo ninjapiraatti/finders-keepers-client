@@ -17,7 +17,6 @@ public class NetworkPlayer : MonoBehaviour
     private string playerName;
     private bool isLocalPlayer;
     private Vector3 targetPosition;
-    private Vector3 networkPosition;
     private float lastUpdateTime;
 
     public void Initialize(string id, string name, bool isLocal)
@@ -26,8 +25,6 @@ public class NetworkPlayer : MonoBehaviour
         playerName = name;
         isLocalPlayer = isLocal;
         targetPosition = transform.position;
-        networkPosition = transform.position;
-
         SetupPlayerVisuals();
     }
 
@@ -68,8 +65,6 @@ public class NetworkPlayer : MonoBehaviour
             Debug.LogWarning($"[NETWORK PLAYER] Attempted to update local player position from network - ignoring!");
             return; // Don't update local player from network
         }
-
-        networkPosition = position;
         lastUpdateTime = Time.time;
 
         Debug.Log($"[NETWORK PLAYER] Remote player {playerName} position updated to {position}");
