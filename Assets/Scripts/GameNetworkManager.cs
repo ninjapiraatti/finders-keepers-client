@@ -277,6 +277,7 @@ public class GameNetworkManager : MonoBehaviour
             var playerObject = otherPlayers[message.player_id];
             if (playerObject != null)
             {
+                Debug.Log($"[PLAYER MOVEMENT] : {transform.position}");
                 var networkPlayer = playerObject.GetComponent<NetworkPlayer>();
                 if (networkPlayer != null)
                 {

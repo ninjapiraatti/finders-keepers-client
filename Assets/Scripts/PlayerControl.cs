@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-  [SerializeField] private float movementSpeed = 5f;
   //[SerializeField] private GridManager gridManager;
   [SerializeField] private Rigidbody2D _rb;
   [SerializeField] private float _speed = 5;
@@ -40,26 +39,18 @@ public class PlayerController : MonoBehaviour
     isLocalPlayer = true; // If network manager is set, this is the local player
   }
 
-  private void Update()
+  private void FixedUpdate()
   {
     // Only process input and movement for local players
     if (!isLocalPlayer) return;
 
     GatherInput();
+    Move();
 
     // Only send network updates if connected
     if (networkManager != null && networkManager.IsConnected())
     {
       CheckSendPosition();
-    }
-  }
-
-  private void FixedUpdate()
-  {
-    // Only move if this is the local player
-    if (isLocalPlayer)
-    {
-      Move();
     }
   }
 
@@ -84,7 +75,7 @@ public class PlayerController : MonoBehaviour
     float distanceMoved = Vector2.Distance(lastSentPosition, transform.position);
     float timeSinceLastSend = Time.time - lastSendTime;
 
-    if (distanceMoved > positionSendThreshold || timeSinceLastSend > sendInterval)
+    if (distanceMoved > positionSendThreshold && timeSinceLastSend > sendInterval)
     {
       if (networkManager != null)
       {
@@ -100,12 +91,6 @@ public class PlayerController : MonoBehaviour
         Debug.LogWarning("NetworkManager is null - cannot send position update!");
       }
     }
-  }
-
-  public void SetPosition(Vector3 position)
-  {
-    transform.position = position;
-    lastSentPosition = position;
   }
 }
 
