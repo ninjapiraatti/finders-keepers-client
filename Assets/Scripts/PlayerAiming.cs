@@ -45,7 +45,7 @@ public class PlayerAiming : MonoBehaviour
 
       // Convert the mouse world position back to screen position for UI
       Vector3 crosshairScreenPos = playerCamera.WorldToScreenPoint(mouseWorldPos);
-      crosshairUI.transform.position = crosshairScreenPos;
+      crosshairUI.transform.position = mouseWorldPos;
 
       Debug.Log("Player world: " + transform.position + " | Mouse world: " + mouseWorldPos + " | Crosshair screen: " + crosshairScreenPos);
     }
