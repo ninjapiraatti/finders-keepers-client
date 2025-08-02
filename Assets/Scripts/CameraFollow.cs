@@ -41,20 +41,8 @@ public class CameraFollow : MonoBehaviour
 
   private void FindLocalPlayer()
   {
-    // First try to find a PlayerController that is the local player
-    PlayerController[] playerControllers = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
-    foreach (PlayerController pc in playerControllers)
-    {
-      // Check if this player has a network manager (indicating it's the local player)
-      // We'll look for the player with a network manager or use a different approach
-      if (pc.gameObject.name.Contains("Local") || pc.transform.CompareTag("Player"))
-      {
-        target = pc.transform;
-        return;
-      }
-    }
-
-    // If that doesn't work, try to find a NetworkPlayer that is local
+    // Try multiple methods to reliably identify the local player
+    // Method 1: Find a NetworkPlayer that is marked as local (most reliable)
     NetworkPlayer[] networkPlayers = FindObjectsByType<NetworkPlayer>(FindObjectsSortMode.None);
     foreach (NetworkPlayer netPlayer in networkPlayers)
     {
@@ -62,6 +50,38 @@ public class CameraFollow : MonoBehaviour
       {
         target = netPlayer.transform;
         return;
+      }
+    }
+
+    // Second, try to find a PlayerController that is the local player
+    PlayerController[] playerControllers = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+    foreach (PlayerController pc in playerControllers)
+    {
+      // Check if this PlayerController has a NetworkManager set (indicating it's the local player)
+      // Local players have their SetNetworkManager method called by GameNetworkManager
+      if (pc.enabled) // Local players have their controller enabled, remote players have it disabled
+      {
+        target = pc.transform;
+        return;
+      }
+    }
+
+    // Alternative method: Find the player object that belongs to the local player via GameNetworkManager
+    GameNetworkManager networkManager = FindFirstObjectByType<GameNetworkManager>();
+    if (networkManager != null)
+    {
+      string myPlayerId = networkManager.GetMyPlayerId();
+      if (!string.IsNullOrEmpty(myPlayerId))
+      {
+        // Look for NetworkPlayer with matching ID
+        foreach (NetworkPlayer netPlayer in networkPlayers)
+        {
+          if (netPlayer.GetPlayerId() == myPlayerId)
+          {
+            target = netPlayer.transform;
+            return;
+          }
+        }
       }
     }
 
