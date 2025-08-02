@@ -19,6 +19,9 @@ public class NetworkPlayer : MonoBehaviour
     private Vector3 targetPosition;
     private float lastUpdateTime;
 
+    // Aiming component
+    private PlayerAiming playerAiming;
+
     public void Initialize(string id, string name, bool isLocal)
     {
         playerId = id;
@@ -26,6 +29,7 @@ public class NetworkPlayer : MonoBehaviour
         isLocalPlayer = isLocal;
         targetPosition = transform.position;
         SetupPlayerVisuals();
+        SetupAiming();
     }
 
     private void SetupPlayerVisuals()
@@ -42,6 +46,17 @@ public class NetworkPlayer : MonoBehaviour
             Material material = playerRenderer.material;
             material.color = isLocalPlayer ? localPlayerColor : remotePlayerColor;
         }
+    }
+
+    private void SetupAiming()
+    {
+        // Get or add aiming component
+        playerAiming = GetComponent<PlayerAiming>();
+        if (playerAiming == null)
+        {
+            playerAiming = gameObject.AddComponent<PlayerAiming>();
+        }
+        playerAiming.SetAsLocalPlayer(isLocalPlayer);
     }
 
     public void UpdateNetworkPosition(Vector3 position)
