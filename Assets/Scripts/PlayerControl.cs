@@ -8,8 +8,6 @@ public class PlayerController : MonoBehaviour
   [SerializeField] private Rigidbody2D _rb;
   [SerializeField] private float _speed = 5;
   [Header("Movement Settings")]
-  public float moveSpeed = 5f;
-  public float smoothTime = 0.1f;
 
   private GameNetworkManager networkManager;
   private Vector2 lastSentPosition;
@@ -92,10 +90,4 @@ public class PlayerController : MonoBehaviour
       }
     }
   }
-}
-
-public static class Helpers
-{
-  private static Matrix4x4 _isoMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 45, 0));
-  public static Vector3 ToIso(this Vector3 input) => _isoMatrix.MultiplyPoint3x4(input);
 }

@@ -42,20 +42,6 @@ public class NetworkPlayer : MonoBehaviour
             Material material = playerRenderer.material;
             material.color = isLocalPlayer ? localPlayerColor : remotePlayerColor;
         }
-
-        // Add a simple distinguishing feature for local player
-        /*
-        if (isLocalPlayer)
-        {
-            // You might want to add a crown, outline, or other visual indicator
-            var outline = gameObject.AddComponent<Outline>();
-            if (outline != null)
-            {
-                outline.OutlineColor = Color.white;
-                outline.OutlineWidth = 2f;
-            }
-        }
-        */
     }
 
     public void UpdateNetworkPosition(Vector3 position)
@@ -113,28 +99,3 @@ public class NetworkPlayer : MonoBehaviour
         return isLocalPlayer;
     }
 }
-
-// Simple outline script for highlighting local player
-/*
-public class Outline : MonoBehaviour
-{
-    public Color OutlineColor = Color.white;
-    public float OutlineWidth = 2f;
-
-    void Start()
-    {
-        // This is a simple implementation
-        // For better outlines, consider using a proper outline shader
-        var renderer = GetComponent<Renderer>();
-        if (renderer != null)
-        {
-            // Create outline effect by duplicating material
-            Material[] materials = renderer.materials;
-            System.Array.Resize(ref materials, materials.Length + 1);
-            materials[materials.Length - 1] = new Material(Shader.Find("Sprites/Outline"));
-            materials[materials.Length - 1].color = OutlineColor;
-            renderer.materials = materials;
-        }
-    }
-}
-*/
