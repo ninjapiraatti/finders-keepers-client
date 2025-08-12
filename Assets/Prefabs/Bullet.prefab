@@ -48,6 +48,9 @@ MonoBehaviour:
   speed: 50
   lifetime: 5
   damage: 10
+  collisionLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!212 &6552580185700522585
 SpriteRenderer:
   m_ObjectHideFlags: 0
