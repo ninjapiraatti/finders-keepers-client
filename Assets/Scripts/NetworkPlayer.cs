@@ -113,4 +113,43 @@ public class NetworkPlayer : MonoBehaviour
     {
         return isLocalPlayer;
     }
+
+    public void MoveToSpawn()
+    {
+        // Find the GameNetworkManager to get spawn point
+        GameNetworkManager networkManager = FindFirstObjectByType<GameNetworkManager>();
+        if (networkManager != null && networkManager.spawnPoint != null)
+        {
+            Vector3 spawnPosition = networkManager.spawnPoint.position;
+
+            if (isLocalPlayer)
+            {
+                // For local player, directly set position
+                transform.position = spawnPosition;
+                // If we need to send network update for local player respawn, do it here
+                if (networkManager.IsConnected())
+                {
+                    networkManager.SendPositionUpdate(spawnPosition);
+                }
+            }
+            else
+            {
+                // For remote player, set target position for smooth movement
+                if (enableSmoothMovement)
+                {
+                    targetPosition = spawnPosition;
+                }
+                else
+                {
+                    transform.position = spawnPosition;
+                }
+            }
+
+            Debug.Log($"Player {playerName} moved to spawn position: {spawnPosition}");
+        }
+        else
+        {
+            Debug.LogWarning("Could not find spawn point or GameNetworkManager!");
+        }
+    }
 }

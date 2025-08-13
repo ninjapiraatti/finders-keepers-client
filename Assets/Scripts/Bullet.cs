@@ -11,14 +11,11 @@ public class Bullet : MonoBehaviour
   private Vector3 direction;
   private string shooterId; // ID of the player who shot this bullet
   private Vector3 lastPosition;
-  private Collider2D bulletCollider;
 
   void Start()
   {
     // Store initial position for raycast
     lastPosition = transform.position;
-    // Get bullet's own collider to exclude it from raycasts
-    bulletCollider = GetComponent<Collider2D>();
     // Destroy bullet after lifetime expires
     Destroy(gameObject, lifetime);
   }
@@ -36,15 +33,7 @@ public class Bullet : MonoBehaviour
     float distance = Vector3.Distance(lastPosition, newPosition);
     if (distance > 0) // Only raycast if we're actually moving
     {
-      // Temporarily disable bullet's own collider to avoid self-collision
-      if (bulletCollider != null)
-        bulletCollider.enabled = false;
-        
       RaycastHit2D hit = Physics2D.Raycast(lastPosition, direction, distance, collisionLayers);
-      
-      // Re-enable bullet's collider
-      if (bulletCollider != null)
-        bulletCollider.enabled = true;
 
       if (hit.collider != null)
       {
@@ -88,6 +77,12 @@ public class Bullet : MonoBehaviour
 
       // Handle damage or other effects here
       Debug.Log($"Bullet hit player: {hitPlayer.GetPlayerName()}");
+
+      // Move hit player back to spawn position
+      if (hitPlayer != null)
+      {
+        hitPlayer.MoveToSpawn();
+      }
 
       // Destroy bullet on hit
       Destroy(gameObject);
